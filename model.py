@@ -6,15 +6,10 @@ import keras.models as KM
 
 
     def __init__(self, keras_model, gpu_count):
-        """Class constructor.
-        keras_model: The Keras model to parallelize
-        gpu_count: Number of GPUs. Must be > 1
-        """
         self.inner_model = keras_model
         self.gpu_count = gpu_count
         merged_outputs = self.make_parallel()
-        super(ParallelModel, self).__init__(inputs=self.inner_model.inputs,
-                                            outputs=merged_outputs)
+        super(ParallelModel, self).__init__(inputs=self.inner_model.inputs, outputs=merged_outputs)
 
     def __getattribute__(self, attrname):
         """Redirect loading and saving methods to the inner model. That's where
@@ -24,8 +19,6 @@ import keras.models as KM
         return super(ParallelModel, self).__getattribute__(attrname)
 
     def summary(self, *args, **kwargs):
-        """Override summary() to display summaries of both, the wrapper
-        and inner models."""
         super(ParallelModel, self).summary(*args, **kwargs)
         self.inner_model.summary(*args, **kwargs)
 
@@ -78,11 +71,6 @@ import keras.models as KM
 
 
 if __name__ == "__main__":
-    # Testing code below. It creates a simple model to train on MNIST and
-    # tries to run it on 2 GPUs. It saves the graph so it can be viewed
-    # in TensorBoard. Run it as:
-    #
-    # python3 parallel_model.py
 
     import os
     import numpy as np
