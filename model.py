@@ -4,13 +4,6 @@ import keras.layers as KL
 import keras.models as KM
 
 
-class ParallelModel(KM.Model):
-    """Subclasses the standard Keras Model and adds multi-GPU support.
-    It works by creating a copy of the model on each GPU. Then it slices
-    the inputs and sends a slice to each copy of the model, and then
-    merges the outputs together and applies the loss on the combined
-    outputs.
-    """
 
     def __init__(self, keras_model, gpu_count):
         """Class constructor.
@@ -37,11 +30,6 @@ class ParallelModel(KM.Model):
         self.inner_model.summary(*args, **kwargs)
 
     def make_parallel(self):
-        """Creates a new wrapper model that consists of multiple replicas of
-        the original model placed on different GPUs.
-        """
-        # Slice inputs. Slice inputs on the CPU to avoid sending a copy
-        # of the full inputs to all GPUs. Saves on bandwidth and memory.
         input_slices = {name: tf.split(x, self.gpu_count)
                         for name, x in zip(self.inner_model.input_names,
                                            self.inner_model.inputs)}
@@ -103,17 +91,11 @@ if __name__ == "__main__":
     from keras.preprocessing.image import ImageDataGenerator
 
     GPU_COUNT = 2
-
-    # Root directory of the project
     ROOT_DIR = os.path.abspath("../")
 
-    # Directory to save logs and trained model
     MODEL_DIR = os.path.join(ROOT_DIR, "logs")
 
     def build_model(x_train, num_classes):
-        # Reset default graph. Keras leaves old ops in the graph,
-        # which are ignored for execution but clutter graph
-        # visualization in TensorBoard.
         tf.reset_default_graph()
 
         inputs = KL.Input(shape=x_train.shape[1:], name="input_image")
@@ -128,7 +110,6 @@ if __name__ == "__main__":
 
         return KM.Model(inputs, x, "digit_classifier_model")
 
-    # Load MNIST Data
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
     x_train = np.expand_dims(x_train, -1).astype('float32') / 255
     x_test = np.expand_dims(x_test, -1).astype('float32') / 255
@@ -136,11 +117,9 @@ if __name__ == "__main__":
     print('x_train shape:', x_train.shape)
     print('x_test shape:', x_test.shape)
 
-    # Build data generator and model
     datagen = ImageDataGenerator()
     model = build_model(x_train, 10)
 
-    # Add multi-GPU support.
     model = ParallelModel(model, GPU_COUNT)
 
     optimizer = keras.optimizers.SGD(lr=0.01, momentum=0.9, clipnorm=5.0)
